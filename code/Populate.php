@@ -61,7 +61,8 @@ class Populate
 			throw new \Exception('requireRecords can only be run in development or test environments');
 		}
 
-		$factory = Injector::inst()->create('DNADesign\Populate\PopulateFactory');
+		/** @var PopulateFactory $factory */
+		$factory = Injector::inst()->create(PopulateFactory::class);
 
 		foreach(self::config()->get('truncate_objects') as $objName) {
 			$versions = array();
@@ -99,6 +100,7 @@ class Populate
 		}
 
 		foreach(self::config()->get('include_yaml_fixtures') as $fixtureFile) {
+			DB::alteration_message(sprintf('Processing %s', $fixtureFile), 'created');
 			$fixture = new YamlFixture($fixtureFile);
 			$fixture->writeInto($factory);
 
@@ -114,6 +116,9 @@ class Populate
 		} else {
 			$populate = $this;
 		}
+
+		DB::alteration_message("Processing failed fixtures", "created");
+		$factory->processFailedFixtures();
 
 		$populate->extend('onAfterPopulateRecords');
 
