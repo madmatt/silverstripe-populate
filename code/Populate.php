@@ -2,6 +2,7 @@
 
 namespace DNADesign\Populate;
 
+use SilverStripe\Assets\File;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Configurable;
@@ -68,23 +69,23 @@ class Populate
 			$versions = array();
 
 			if(class_exists($objName)) {
-				foreach(DataList::create($objName) as $obj) {
-					// if the object has the versioned extension, make sure we delete
-					// that as well
-					if($obj->hasExtension('SilverStripe\Versioned\Versioned')) {
-						foreach($obj->getVersionedStages() as $stage) {
-							$versions[$stage] = true;
+				if (in_array($objName, ClassInfo::subclassesFor(File::class))) {
+                    foreach(DataList::create($objName) as $obj) {
+                        /** @var File $obj */
+                        $obj->deleteFile();
+                    }
+                }
 
-							$obj->deleteFromStage($stage);
-						}
-					}
+                // Get one of the objects, check for the versioned extensions and get all stages to truncate
+                $obj = new $objName();
 
-					try {
-						@$obj->delete();
-					} catch(\Exception $e) {
-						// notice
-					}
-				}
+                // if the object has the versioned extension, make sure we delete
+                // that as well
+                if($obj->hasExtension('SilverStripe\Versioned\Versioned')) {
+                    foreach($obj->getVersionedStages() as $stage) {
+                        $versions[$stage] = true;
+                    }
+                }
 			}
 
 			if($versions) {
@@ -117,6 +118,8 @@ class Populate
 			$populate = $this;
 		}
 
+		DB::alteration_message("");
+        DB::alteration_message("");
 		DB::alteration_message("Processing failed fixtures", "created");
 		$factory->processFailedFixtures();
 
